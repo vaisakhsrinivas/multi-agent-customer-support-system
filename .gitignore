@@ -82,6 +82,9 @@ Desktop.ini
 *.log
 .cache/
 
+# --- Google ADK (local session DB and dev state under each agent package) ---
+**/.adk/
+
 # --- Docker (local overrides often hold secrets) ---
 docker-compose.override.yml
 

@@ -21,7 +21,10 @@ from pathlib import Path
 import httpx
 import pytest
 from dotenv import load_dotenv
-from google.adk.runners import InMemoryRunner
+from google.adk.artifacts.in_memory_artifact_service import InMemoryArtifactService
+from google.adk.memory.in_memory_memory_service import InMemoryMemoryService
+from google.adk.runners import Runner
+from google.adk.sessions.in_memory_session_service import InMemorySessionService
 from google.genai import types
 
 _ROOT = Path(__file__).resolve().parent.parent
@@ -42,8 +45,21 @@ def _tool_names_from_event(event) -> list[str]:
     return names
 
 
+def _make_runner(agent):
+    # InMemoryRunner does not pass auto_create_session; default False raises
+    # SessionNotFoundError for new session_id values.
+    return Runner(
+        app_name="support_scenario_test",
+        agent=agent,
+        artifact_service=InMemoryArtifactService(),
+        session_service=InMemorySessionService(),
+        memory_service=InMemoryMemoryService(),
+        auto_create_session=True,
+    )
+
+
 async def _run_prompt(agent, prompt: str) -> dict:
-    runner = InMemoryRunner(agent=agent, app_name="support_scenario_test")
+    runner = _make_runner(agent)
     authors: list[str] = []
     tool_names: list[str] = []
     texts: list[str] = []

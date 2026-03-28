@@ -19,7 +19,10 @@ import uuid
 from pathlib import Path
 
 from dotenv import load_dotenv
-from google.adk.runners import InMemoryRunner
+from google.adk.artifacts.in_memory_artifact_service import InMemoryArtifactService
+from google.adk.memory.in_memory_memory_service import InMemoryMemoryService
+from google.adk.runners import Runner
+from google.adk.sessions.in_memory_session_service import InMemorySessionService
 from google.genai import types
 
 _ROOT = Path(__file__).resolve().parent.parent
@@ -81,8 +84,19 @@ async def _run_all(agent) -> None:
             sys.exit(1)
 
 
+def _make_runner(agent):
+    return Runner(
+        app_name="support_scenario_cli",
+        agent=agent,
+        artifact_service=InMemoryArtifactService(),
+        session_service=InMemorySessionService(),
+        memory_service=InMemoryMemoryService(),
+        auto_create_session=True,
+    )
+
+
 async def _run_prompt(agent, prompt: str):
-    runner = InMemoryRunner(agent=agent, app_name="support_scenario_cli")
+    runner = _make_runner(agent)
     authors: list[str] = []
     tools: list[str] = []
     texts: list[str] = []

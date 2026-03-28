@@ -47,4 +47,15 @@ flowchart TB
 - **Database (schema, migrations, seed):** [supabase/README.md](supabase/README.md)
 - **ADK agents (run, env, MCP, returns A2A, tests):** [agents/README.md](agents/README.md)
 - **Return A2A service (`to_a2a`):** [services/README.md](services/README.md)
-- **Integration checks (billing MCP / returns A2A / escalation):** `pytest tests/test_support_scenarios.py` with `RUN_INTEGRATION_TESTS=1` — see [agents/README.md](agents/README.md)
+- **Mini eval (YAML scenarios + scores):** [eval/README.md](eval/README.md) — see below
+
+### Tests and evaluation
+
+| What | How | When it runs |
+|------|-----|----------------|
+| **Integration scenarios** | `RUN_INTEGRATION_TESTS=1 pytest tests/test_support_scenarios.py -v` | Billing (MCP), returns (A2A), triage escalation; custom assertions. |
+| **Mini eval** | `RUN_MINI_EVAL=1 pytest tests/test_mini_eval.py -v` **or** `python -m eval` | Same live deps as integration tests; scenarios in [`eval/scenarios.yaml`](eval/scenarios.yaml). |
+
+**Mini eval** assigns a **binary score per rule** (0 or 1), a **weighted mean score per scenario**, and compares it to **`pass_threshold`** (default 1.0). Running **`python -m eval`** from the repo root prints a **PASS/FAIL/SKIP** report with **scores**, per-rule breakdown, **mean score** over non-skipped scenarios, and exits **0** only if every executed scenario passes. Optional: **`adk eval`** against an ADK EvalSet file (see [eval/README.md](eval/README.md)).
+
+Install dev dependencies first: `pip install -r requirements-dev.txt` (includes **PyYAML** for scenarios). Optional shell flags are documented in [`.env.example`](.env.example) (`RUN_INTEGRATION_TESTS`, `RUN_MINI_EVAL`).

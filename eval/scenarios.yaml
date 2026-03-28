@@ -1,0 +1,59 @@
+# Declarative mini-eval scenarios for customer_support root_agent.
+# Run: RUN_MINI_EVAL=1 pytest tests/test_mini_eval.py -v
+# Or:  python -m eval.run
+
+version: 1
+
+scenarios:
+  - id: billing_mcp
+    description: Order facts via DataSpecialist + Supabase MCP
+    prompt: |
+      For billing verification: what is total_cents and currency for order
+      bbbbbbbb-0001-4000-8000-000000000001? Use the database.
+    rules:
+      - type: authors_include
+        names: [DataSpecialist]
+      - type: tools_or_text
+        tools_any: [execute_sql]
+        text_any: ["4999"]
+
+  - id: returns_a2a
+    description: Return eligibility via ReturnsSpecialist + remote A2A
+    skip_if_truthy_env: [RETURN_A2A_DISABLED]
+    requires_return_a2a_server: true
+    prompt: |
+      Can I return order bbbbbbbb-0001-4000-8000-000000000001?
+      My email is ava.chen@example.com. Check eligibility.
+    rules:
+      - type: authors_include
+        names: [ReturnsSpecialist]
+      - type: tools_or_text
+        tools_any: [check_return_eligibility]
+        text_any: [eligible]
+
+  - id: escalation_triage
+    description: Legal threat → TriageSpecialist + escalation language
+    prompt: |
+      I am furious. I will sue your company if you do not fix this today.
+      I demand a supervisor now and will not accept a bot.
+    rules:
+      - type: authors_include
+        names: [TriageSpecialist]
+      - type: text_contains_any
+        substrings: [supervisor, human, escalat, manager, agent]
+        case_insensitive: true
+
+  - id: greeting
+    description: Short greeting gets a substantive reply
+    prompt: Hello, I need help with my account.
+    rules:
+      - type: text_min_length
+        min: 20
+
+  - id: capabilities
+    description: Capability question mentions support-relevant topics
+    prompt: What kinds of customer issues can you help me with?
+    rules:
+      - type: text_contains_any
+        substrings: [order, return, support, help, ticket, billing, account]
+        case_insensitive: true

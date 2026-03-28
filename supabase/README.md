@@ -73,6 +73,8 @@ select count(*) from support_tickets;
 
 Each count should be at least **10** (this repo’s seed has **12** per table).
 
+**Eval and tests:** Order UUIDs such as `bbbbbbbb-0001-4000-8000-000000000001` and seed emails (e.g. `ava.chen@example.com`) match prompts in [`eval/scenarios.yaml`](../eval/scenarios.yaml) and in [`tests/test_support_scenarios.py`](../tests/test_support_scenarios.py). Keep those in sync if you change seed data.
+
 ---
 
 ## Schema overview

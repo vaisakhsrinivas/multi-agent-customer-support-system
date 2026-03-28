@@ -54,6 +54,42 @@ chmod +x scripts/run_integration_scenarios.py
 ./scripts/run_integration_scenarios.py
 ```
 
+## Mini eval (YAML scenarios + scoring)
+
+Declarative scenarios live in [`eval/scenarios.yaml`](../eval/scenarios.yaml): billing via **DataSpecialist** + MCP, returns via **ReturnsSpecialist** + A2A (skipped if the return server is down or `RETURN_A2A_DISABLED` is set), triage escalation, plus light greeting/capability checks. Dependencies match **integration tests** (Gemini, Supabase MCP, Node/`npx`, optional return service on port 8001 unless you override `RETURN_A2A_*`).
+
+**Scoring:** each **rule** scores **1** (pass) or **0** (fail). The scenario **score** is a **weighted average** (default weight `1.0` per rule; override with `weight` on a rule). The scenario **passes** if `score >= pass_threshold` (default **1.0**, i.e. all rules must pass). See [`eval/README.md`](../eval/README.md) for rule types and schema.
+
+**Pytest** (one parametrized test per scenario):
+
+```bash
+pip install -r requirements-dev.txt
+export RUN_MINI_EVAL=1
+export GOOGLE_API_KEY=...
+export SUPABASE_ACCESS_TOKEN=... SUPABASE_PROJECT_REF=...
+# Optional Terminal A for returns scenario:
+python -m services.return_a2a
+# Terminal B:
+pytest tests/test_mini_eval.py -v
+```
+
+**CLI** (runs all scenarios, prints a text report, sets exit code):
+
+```bash
+pip install -r requirements-dev.txt
+export GOOGLE_API_KEY=...
+export SUPABASE_ACCESS_TOKEN=... SUPABASE_PROJECT_REF=...
+python -m eval
+# Optional custom file:
+python -m eval path/to/scenarios.yaml
+```
+
+The CLI prints **PASS/FAIL/SKIP** per scenario, **score vs threshold**, each **rule’s score and weight**, failure lines for failed rules, and **mean score** across non-skipped scenarios. Exit code **0** = all non-skipped scenarios passed.
+
+**ADK built-in eval:** `agents/customer_support/__init__.py` includes `from . import agent` so **`adk eval agents/customer_support path/to/evalset.test.json`** can load `root_agent` (see [ADK evaluate docs](https://google.github.io/adk-docs/evaluate/)). That path is separate from the YAML mini eval.
+
+Full reference: [`eval/README.md`](../eval/README.md).
+
 ## Run the web UI
 
 ```bash

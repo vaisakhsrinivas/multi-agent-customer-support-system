@@ -81,6 +81,11 @@ Desktop.ini
 # --- Logs & local scratch ---
 *.log
 .cache/
+*.sqlite
+*.sqlite3
+
+# --- Mypy daemon metadata (optional local tooling) ---
+.dmypy.json
 
 # --- Google ADK (local session DB and dev state under each agent package) ---
 **/.adk/

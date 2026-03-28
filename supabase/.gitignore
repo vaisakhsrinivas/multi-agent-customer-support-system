@@ -5,3 +5,4 @@
 # If you add env files next to the CLI config
 .env
 .env.*
+!.env.example

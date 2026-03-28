@@ -2,6 +2,8 @@
 .env
 .env.*
 !.env.example
+.env.local
+.env.*.local
 .envrc
 *.pem
 *.key
@@ -19,6 +21,8 @@ service-account*.json
 *secret*.json
 .secrets/
 secrets/
+application_default_credentials.json
+gcloud-*.json
 
 # --- API / auth tokens (common filenames) ---
 .token
@@ -39,6 +43,17 @@ env/
 dist/
 build/
 *.egg
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.tox/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.hypothesis/
+__pypackages__/
 
 # --- Node ---
 node_modules/
@@ -49,6 +64,11 @@ yarn-error.log*
 
 # --- IDE & editors ---
 .idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
 *.swp
 *.swo
 *~
@@ -64,3 +84,7 @@ Desktop.ini
 
 # --- Docker (local overrides often hold secrets) ---
 docker-compose.override.yml
+
+# --- Supabase CLI (also listed in supabase/.gitignore) ---
+supabase/.temp/
+supabase/.branches/

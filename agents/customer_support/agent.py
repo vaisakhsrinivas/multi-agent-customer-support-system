@@ -7,6 +7,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from google.adk.agents import LlmAgent
+from google.adk.agents.remote_a2a_agent import RemoteA2aAgent
 from google.adk.tools.mcp_tool import McpToolset
 from google.adk.tools.mcp_tool.mcp_session_manager import StdioConnectionParams
 from mcp import StdioServerParameters
@@ -55,6 +56,34 @@ def _model() -> str:
     return os.environ.get("ADK_MODEL", "gemini-2.5-flash")
 
 
+def _returns_agent_card_url() -> str:
+    """Agent card URL for the dedicated Return A2A service (must match running server)."""
+    explicit = os.environ.get("RETURN_A2A_CARD_URL", "").strip()
+    if explicit:
+        return explicit
+    host = os.environ.get("RETURN_A2A_HOST", "127.0.0.1")
+    port = os.environ.get("RETURN_A2A_PORT", "8001")
+    protocol = os.environ.get("RETURN_A2A_PROTOCOL", "http")
+    return f"{protocol}://{host}:{port}/.well-known/agent-card.json"
+
+
+def _returns_specialist() -> RemoteA2aAgent | None:
+    if os.environ.get("RETURN_A2A_DISABLED", "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+    ):
+        return None
+    return RemoteA2aAgent(
+        name="ReturnsSpecialist",
+        agent_card=_returns_agent_card_url(),
+        description=(
+            "Remote A2A ReturnAgent: return eligibility (delivered, window, email match) and "
+            "initiating returns. Run `python -m services.return_a2a` so this endpoint is up."
+        ),
+    )
+
+
 _data_specialist = LlmAgent(
     name="DataSpecialist",
     model=_model(),
@@ -79,30 +108,46 @@ _triage_specialist = LlmAgent(
     model=_model(),
     description=(
         "Handles qualitative support: tone, prioritization, reply drafts, categorization, "
-        "and policy-style guidance when no database lookup is needed."
+        "escalation to humans, and policy-style guidance when no database lookup is needed."
     ),
     instruction="""You improve support quality without database access.
 
 - Classify urgency (low/normal/high) and suggest next steps.
 - Draft short, empathetic customer-facing replies when asked.
+- Escalation: legal threats, harassment, safety issues, demands for a supervisor/manager,
+  or clear refusal to accept policy → stay calm, acknowledge concern, outline next steps,
+  and recommend a human agent / supervisor handoff with suggested internal priority (e.g. high).
 - If the user needs order numbers, ticket status, or account facts from the database,
   state clearly that DataSpecialist must look them up and what identifiers (email, order id)
   are required.""",
 )
 
+_sub_agents: list = [_data_specialist, _triage_specialist]
+_rs = _returns_specialist()
+if _rs is not None:
+    _sub_agents.append(_rs)
+
+_ROUTER_NAMES = "DataSpecialist, TriageSpecialist"
+if _rs is not None:
+    _ROUTER_NAMES += ", ReturnsSpecialist"
+
 root_agent = LlmAgent(
     name="SupportRouter",
     model=_model(),
     description="Front-door agent that routes customer issues to the right specialist.",
-    instruction="""You are the primary customer support assistant.
+    instruction=f"""You are the primary customer support assistant.
 
 Routing:
-- Questions about specific customers, orders, shipping/payment status, ticket records, or
-  anything needing SQL/database facts → transfer to DataSpecialist (use transfer_to_agent).
-- Wording help, empathy, prioritization, templates, or general policy guidance without
-  needing live data → transfer to TriageSpecialist.
+- Questions about specific customers, orders, shipping/payment status, ticket records,
+  billing amounts, or anything needing SQL/database facts → transfer to DataSpecialist.
+- Product returns, refunds for shipped items, return labels, or whether an order can be
+  returned → transfer to ReturnsSpecialist (remote A2A). Ask for order id and email if missing.
+- Anger, legal threats, supervisor/manager requests, harassment, safety, or human
+  escalation → transfer to TriageSpecialist.
+- Wording help, empathy, prioritization, templates, or general policy without DB or returns
+  → transfer to TriageSpecialist.
 
 After a specialist responds, you may combine their output into one clear answer for the user.
-Use transfer_to_agent with the exact agent name: DataSpecialist or TriageSpecialist.""",
-    sub_agents=[_data_specialist, _triage_specialist],
+Use transfer_to_agent with the exact agent name. Available specialists: {_ROUTER_NAMES}.""",
+    sub_agents=_sub_agents,
 )

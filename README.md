@@ -1,6 +1,50 @@
-# multi-agent-customer-support-system
+## Overview
 
-Multi-agent customer support demo: **Google ADK** router + specialists, **Supabase** data via **MCP**, optional **A2A** in the ADK web server.
+A **multi-agent customer support** reference built with **Google ADK**. A single **router** agent delegates to specialists: one talks to **Supabase** through the **Model Context Protocol (MCP)** for live orders and tickets, another reaches a **returns workflow** exposed as a separate **Agent-to-Agent (A2A)** service (`to_a2a`), and a **triage** agent handles tone, policy, and **escalation** guidance without those backends. The database schema and seed data live in **Supabase migrations** so you can point the stack at a real hosted project.
+
+## Architecture
+
+```mermaid
+flowchart TB
+  subgraph clientLayer [Client]
+    WebUI[ADK Web UI]
+  end
+
+  subgraph mainApp [ADK app agents/customer_support]
+    Router[SupportRouter]
+    DataSp[DataSpecialist]
+    TriageSp[TriageSpecialist]
+    ReturnsSp[ReturnsSpecialist]
+  end
+
+  subgraph returnSvc [services/return_a2a]
+    ReturnAgent[ReturnAgent via to_a2a]
+    Tools[check_return_eligibility initiate_return]
+  end
+
+  subgraph dataPlane [Data plane]
+    McpServer[Supabase MCP stdio]
+    Db[(Supabase Postgres)]
+  end
+
+  WebUI --> Router
+  Router --> DataSp
+  Router --> TriageSp
+  Router --> ReturnsSp
+  DataSp --> McpServer
+  McpServer --> Db
+  ReturnsSp -->|RemoteA2aAgent JSON-RPC| ReturnAgent
+  ReturnAgent --> Tools
+```
+
+- **SupportRouter** uses LLM transfer to pick a specialist.
+- **DataSpecialist** runs read-only SQL against your project through **`@supabase/mcp-server-supabase`**.
+- **ReturnsSpecialist** is a **`RemoteA2aAgent`**; it calls the standalone **ReturnAgent** Starlette app (same repo) that implements return eligibility and initiation.
+- **TriageSpecialist** covers qualitative support and human **escalation** paths when no DB or return tool is required.
+
+## Documentation
 
 - **Database (schema, migrations, seed):** [supabase/README.md](supabase/README.md)
-- **ADK agents (run, env, MCP):** [agents/README.md](agents/README.md)
+- **ADK agents (run, env, MCP, returns A2A, tests):** [agents/README.md](agents/README.md)
+- **Return A2A service (`to_a2a`):** [services/README.md](services/README.md)
+- **Integration checks (billing MCP / returns A2A / escalation):** `pytest tests/test_support_scenarios.py` with `RUN_INTEGRATION_TESTS=1` — see [agents/README.md](agents/README.md)

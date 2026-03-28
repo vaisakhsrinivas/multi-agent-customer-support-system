@@ -1,0 +1,66 @@
+# --- Environment & secrets (never commit) ---
+.env
+.env.*
+!.env.example
+.envrc
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+*.keystore
+credentials.json
+*-credentials.json
+service-account*.json
+*secret*.json
+.secrets/
+secrets/
+
+# --- API / auth tokens (common filenames) ---
+.token
+.tokens
+.auth
+*.token
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# --- Node ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# --- IDE & editors ---
+.idea/
+*.swp
+*.swo
+*~
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# --- Logs & local scratch ---
+*.log
+.cache/
+
+# --- Docker (local overrides often hold secrets) ---
+docker-compose.override.yml

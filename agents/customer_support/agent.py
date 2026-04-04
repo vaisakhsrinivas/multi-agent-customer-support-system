@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -15,6 +16,12 @@ from mcp import StdioServerParameters
 # Load .env from repo root (parent of `agents/`)
 _ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(_ROOT / ".env")
+
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+from observability.langfuse_otel import configure_tracing
+
+configure_tracing(service_name="customer_support")
 
 
 def _str_env() -> dict[str, str]:

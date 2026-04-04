@@ -1,6 +1,6 @@
 ## Overview
 
-A **multi-agent customer support** reference built with **Google ADK**. A single **router** agent delegates to specialists: one talks to **Supabase** through the **Model Context Protocol (MCP)** for live orders and tickets, another reaches a **returns workflow** exposed as a separate **Agent-to-Agent (A2A)** service (`to_a2a`), and a **triage** agent handles tone, policy, and **escalation** guidance without those backends. The database schema and seed data live in **Supabase migrations** so you can point the stack at a real hosted project.
+A **multi-agent customer support** reference built with **Google ADK**. A single **router** agent delegates to specialists: one talks to **Supabase** through the **Model Context Protocol (MCP)** for live orders and tickets, another reaches a **returns workflow** exposed as a separate **Agent-to-Agent (A2A)** service (`to_a2a`), and a **triage** agent handles tone, policy, and **escalation** guidance without those backends. The database schema and seed data live in **Supabase migrations** so you can point the stack at a real hosted project. Optionally, **OpenTelemetry** spans can be exported to **[Langfuse](https://langfuse.com)** ([setup](agents/README.md#langfuse-observability)).
 
 ## Architecture
 
@@ -27,6 +27,10 @@ flowchart TB
     Db[(Supabase Postgres)]
   end
 
+  subgraph obsLayer [Observability optional]
+    LF[Langfuse OTLP]
+  end
+
   WebUI --> Router
   Router --> DataSp
   Router --> TriageSp
@@ -35,18 +39,22 @@ flowchart TB
   McpServer --> Db
   ReturnsSp -->|RemoteA2aAgent JSON-RPC| ReturnAgent
   ReturnAgent --> Tools
+  Router -.->|OTLP optional| LF
+  ReturnAgent -.->|OTLP optional| LF
 ```
 
 - **SupportRouter** uses LLM transfer to pick a specialist.
 - **DataSpecialist** runs read-only SQL against your project through **`@supabase/mcp-server-supabase`**.
 - **ReturnsSpecialist** is a **`RemoteA2aAgent`**; it calls the standalone **ReturnAgent** Starlette app (same repo) that implements return eligibility and initiation.
 - **TriageSpecialist** covers qualitative support and human **escalation** paths when no DB or return tool is required.
+- **Langfuse (optional):** when enabled, the main ADK app and the return A2A process can send OTLP traces to Langfuse (see [agents/README.md](agents/README.md#langfuse-observability)).
 
 ## Documentation
 
 - **Database (schema, migrations, seed):** [supabase/README.md](supabase/README.md)
 - **ADK agents (run, env, MCP, returns A2A, tests):** [agents/README.md](agents/README.md)
 - **Return A2A service (`to_a2a`):** [services/README.md](services/README.md)
+- **Langfuse / OpenTelemetry (optional):** [agents/README.md](agents/README.md#langfuse-observability), [observability/langfuse_otel.py](observability/langfuse_otel.py), `requirements-observability.txt`
 - **Mini eval (YAML scenarios + scores):** [eval/README.md](eval/README.md) — see below
 
 ### Tests and evaluation

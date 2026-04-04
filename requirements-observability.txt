@@ -1,0 +1,8 @@
+# Optional: OpenTelemetry export to Langfuse (and richer Gemini spans).
+# pip install -r requirements-observability.txt
+-r requirements.txt
+
+opentelemetry-sdk>=1.28.0
+opentelemetry-exporter-otlp-proto-http>=1.28.0
+langfuse>=3.0.0
+openinference-instrumentation-google-genai>=0.1.0

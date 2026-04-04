@@ -46,3 +46,7 @@ Then `SupportRouter` only uses DataSpecialist and TriageSpecialist.
 ### Integration tests and mini eval
 
 **Integration tests** and the **YAML mini eval** ([`eval/README.md`](../eval/README.md)) expect this service to be reachable when exercising **returns** (unless the eval scenario is skipped or `RETURN_A2A_DISABLED` is set). Defaults (`127.0.0.1:8001`) should match `RETURN_A2A_*` in `.env`.
+
+### Langfuse
+
+With `LANGFUSE_ENABLED` and [`requirements-observability.txt`](../requirements-observability.txt) installed, this process exports OTel traces as **`service.name=return_a2a`**. See [agents/README.md](../agents/README.md#langfuse-observability).

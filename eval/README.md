@@ -10,6 +10,8 @@
 
 Install **`requirements-dev.txt`** (includes **PyYAML**). Same env vars as agents: **`GOOGLE_API_KEY`**, **`SUPABASE_ACCESS_TOKEN`**, **`SUPABASE_PROJECT_REF`**, optional **`RETURN_A2A_*`** / **`RETURN_A2A_DISABLED`**.
 
+**Langfuse:** `python -m eval` and pytest mini eval import [`customer_support/agent`](../agents/customer_support/agent.py). If **`LANGFUSE_ENABLED`** is on and [`requirements-observability.txt`](../requirements-observability.txt) is installed, those runs may **export OpenTelemetry traces** to Langfuse like a normal chat session. Unset Langfuse env vars (or disable tracing) if you want eval runs without observability noise.
+
 ## Two evaluation styles
 
 1. **YAML mini eval (this folder)** — After each live run, rules check **authors**, **tool names**, and **response text**. Each rule scores **0 or 1**; the scenario score is a **weighted mean** compared to **`pass_threshold`** (default **1.0**). Optional **per-rule `weight`**. Same runtime needs as integration tests (Gemini, Supabase MCP via `npx`, optional Return A2A).

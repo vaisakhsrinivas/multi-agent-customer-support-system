@@ -3,15 +3,23 @@
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
-from google.adk.a2a.utils.agent_to_a2a import to_a2a
-from google.adk.agents import LlmAgent
-from google.adk.tools import FunctionTool
 
 _ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(_ROOT / ".env")
+
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+from observability.langfuse_otel import configure_tracing
+
+configure_tracing(service_name="return_a2a")
+
+from google.adk.a2a.utils.agent_to_a2a import to_a2a
+from google.adk.agents import LlmAgent
+from google.adk.tools import FunctionTool
 
 from .returns_logic import check_return_eligibility, initiate_return
 

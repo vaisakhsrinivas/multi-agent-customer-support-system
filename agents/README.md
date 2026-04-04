@@ -27,6 +27,7 @@ Environment variables (see [../.env.example](../.env.example)):
 | `ADK_MODEL` | Optional | Defaults to `gemini-2.5-flash` |
 | `RETURN_A2A_*` / `RETURN_A2A_CARD_URL` | ReturnsSpecialist | Must match the Return A2A server (see [services/README.md](../services/README.md)) |
 | `RETURN_A2A_DISABLED` | Optional | `true` to omit ReturnsSpecialist when the return service is off |
+| `LANGFUSE_*` / `OTEL_EXPORTER_OTLP_*` | Optional | Send ADK OpenTelemetry traces to [Langfuse](https://langfuse.com) — see **Langfuse (observability)** below |
 
 You also need **Node.js** / `npx` on your PATH so the MCP server can start.
 
@@ -89,6 +90,49 @@ The CLI prints **PASS/FAIL/SKIP** per scenario, **score vs threshold**, each **r
 **ADK built-in eval:** `agents/customer_support/__init__.py` includes `from . import agent` so **`adk eval agents/customer_support path/to/evalset.test.json`** can load `root_agent` (see [ADK evaluate docs](https://google.github.io/adk-docs/evaluate/)). That path is separate from the YAML mini eval.
 
 Full reference: [`eval/README.md`](../eval/README.md).
+
+## Langfuse (observability)
+
+Google ADK emits **OpenTelemetry** spans (invocations, GenAI attributes). This repo configures an **OTLP HTTP** exporter to **Langfuse** when enabled, using [`observability/langfuse_otel.py`](../observability/langfuse_otel.py). Bootstrap runs at import time in [`customer_support/agent.py`](customer_support/agent.py) (`service.name` **customer_support**) and in [`services/return_a2a/app.py`](../services/return_a2a/app.py) (**return_a2a**) so both `adk web agents` and the return microservice can export traces.
+
+### Install
+
+```bash
+pip install -r requirements-observability.txt
+```
+
+### Enable (simplest)
+
+Set in `.env` (see [`.env.example`](../.env.example)):
+
+- `LANGFUSE_ENABLED=1`
+- `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` from your Langfuse project
+- `LANGFUSE_HOST` only if not on **EU** cloud (default `https://cloud.langfuse.com`). Examples: **US** `https://us.cloud.langfuse.com`, **self-hosted** `http://localhost:3000`.
+
+The app builds the OTLP URL `…/api/public/otel/v1/traces` and `Authorization: Basic …` plus `x-langfuse-ingestion-version: 4` as in [Langfuse OpenTelemetry docs](https://langfuse.com/docs/opentelemetry/get-started).
+
+Alternatively, set `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` and `OTEL_EXPORTER_OTLP_HEADERS` yourself (no `LANGFUSE_ENABLED` required). Langfuse accepts **HTTP/protobuf or JSON** OTLP only (not gRPC).
+
+### Optional: OpenInference for `google.genai`
+
+Set `LANGFUSE_OPENINFERENCE=1` to load `openinference-instrumentation-google-genai` for extra Gemini client spans. Inspect traces in Langfuse for overlap with ADK’s own spans.
+
+### PII / message content in spans
+
+By default, ADK may **omit** message bodies from span attributes. To log prompts/responses (higher **PII** risk), set only if acceptable:
+
+- `ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS=true`
+- `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true`
+
+### Other backends / existing OTel
+
+If you already use a global `TracerProvider`, the bootstrap **adds** a `BatchSpanProcessor` to it when possible. For multiple backends or collectors, follow [Langfuse: existing OpenTelemetry setup](https://langfuse.com/faq/all/existing-otel-setup).
+
+### Troubleshooting
+
+- **401 / “Invalid credentials… confirm host”:** Set **`LANGFUSE_HOST`** to the same **region** as your Langfuse project—**EU** `https://cloud.langfuse.com`, **US** `https://us.cloud.langfuse.com`. Use **public** and **secret** keys from that same project (not mixed regions).
+- **`.env` changes:** Restart **`adk web agents`** and **`python -m services.return_a2a`**; running processes do not reload `.env`.
+- **`python-dotenv`:** By default it does **not** override variables already set in your shell. If `LANGFUSE_*` or `OTEL_*` are wrong in the environment, unset them or export the correct values before starting the app.
 
 ## Run the web UI
 

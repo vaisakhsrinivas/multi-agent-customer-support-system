@@ -4,7 +4,10 @@
 !.env.example
 .env.local
 .env.*.local
+# Env files without a leading dot (e.g. secrets.env) — not matched by .env / .env.*
+*.env
 .envrc
+.netrc
 *.pem
 *.key
 *.p12

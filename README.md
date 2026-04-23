@@ -2,6 +2,23 @@
 
 A **multi-agent customer support** reference built with **Google ADK**. A single **router** agent delegates to specialists: one talks to **Supabase** through the **Model Context Protocol (MCP)** for live orders and tickets, another reaches a **returns workflow** exposed as a separate **Agent-to-Agent (A2A)** service (`to_a2a`), and a **triage** agent handles tone, policy, and **escalation** guidance without those backends. The database schema and seed data live in **Supabase migrations** so you can point the stack at a real hosted project. Optionally, **OpenTelemetry** spans can be exported to **[Langfuse](https://langfuse.com)** ([setup](agents/README.md#langfuse-observability)).
 
+## Tech stack
+
+| Area | Technologies |
+|------|----------------|
+| **Language & runtime** | Python 3 |
+| **Agents & orchestration** | [Google ADK](https://github.com/google/adk-python) (`google-adk`), including **A2A** (`RemoteA2aAgent`, `to_a2a`) |
+| **LLM** | [Google Gemini](https://ai.google.dev/) (default model `gemini-2.5-flash`, configurable via `ADK_MODEL`) |
+| **Local config** | `python-dotenv` (`.env`) |
+| **Return A2A service** | ADK `LlmAgent` + `to_a2a()` on a **Starlette** ASGI app, served with **Uvicorn** |
+| **Data & migrations** | [Supabase](https://supabase.com/) (Postgres), [Supabase CLI](https://supabase.com/docs/guides/cli) for schema and seed |
+| **Database access from agents** | [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) — [`@supabase/mcp-server-supabase`](https://github.com/supabase/mcp-server-supabase) (requires **Node.js** / `npx`) |
+| **Developer UI** | ADK Web UI (`adk web`) |
+| **Testing & eval** | **pytest**, **pytest-asyncio**, **httpx**, **PyYAML** (see `requirements-dev.txt`) |
+| **Observability (optional)** | **OpenTelemetry** (SDK + OTLP HTTP), **[Langfuse](https://langfuse.com)**, **openinference-instrumentation-google-genai** (see `requirements-observability.txt`) |
+
+Runtime installs are split across [`requirements.txt`](requirements.txt), [`requirements-dev.txt`](requirements-dev.txt), and [`requirements-observability.txt`](requirements-observability.txt).
+
 ## Architecture
 
 ```mermaid
